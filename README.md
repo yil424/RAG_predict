@@ -1,4 +1,5 @@
 Online demo without LLM: https://ragpredict-nvgcqifzvpvudff4kvdkuh.streamlit.app
+
 Full offline demo with local LLM: see ‘Local demo with LLM’ below.
 
 ## Local demo with LLM (Ollama + Llama 3.1 8B)
