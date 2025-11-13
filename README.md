@@ -1,3 +1,6 @@
+Online demo without LLM: https://ragpredict-nvgcqifzvpvudff4kvdkuh.streamlit.app
+Full offline demo with local LLM: see ‘Local demo with LLM’ below.
+
 ## Local demo with LLM (Ollama + Llama 3.1 8B)
 
 To fully reproduce the RAG + early-warning web UI **with local LLM answers**, please follow these steps on a Windows 10/11 machine:
