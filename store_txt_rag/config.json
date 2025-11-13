@@ -1,0 +1,127 @@
+{
+  "token_pattern": "(?u)\\b[\\w/%.+\\-]+\\b",
+  "ngram_range": [
+    1,
+    2
+  ],
+  "min_df": 2,
+  "max_df": 0.9,
+  "max_features": 60000,
+  "sublinear_tf": true,
+  "norm": "l2",
+  "use_dense": true,
+  "dense_model": "BAAI/bge-small-en-v1.5",
+  "dense_batch_size": 16,
+  "normalize_dense": true,
+  "rrf_k": 60,
+  "variants_topk": 50,
+  "adaptive_gamma": 0.2,
+  "min_keep": 5,
+  "max_keep": 20,
+  "mmr_lambda": 0.7,
+  "mmr_top_m": 8,
+  "alpha_lex": 0.6,
+  "beta_dense": 0.3,
+  "lambda_prior": 0.1,
+  "recency_tau": 6.0,
+  "doc_type_weight": {
+    "guideline": 1.0,
+    "consensus": 1.0,
+    "review": 0.7,
+    "trial": 0.6,
+    "cohort": 0.5,
+    "case": 0.3,
+    "other": 0.4
+  },
+  "pediatric_bonus": 0.2,
+  "sv_bonus": 0.2,
+  "synonyms": {
+    "oxygenation index": [
+      "OI",
+      "PaO2/FiO2",
+      "PF ratio",
+      "oxygenation"
+    ],
+    "ecmo weaning": [
+      "decannulation",
+      "wean from ECMO",
+      "discontinuation"
+    ],
+    "indications": [
+      "criteria",
+      "thresholds",
+      "initiation"
+    ],
+    "lactate": [
+      "serum lactate"
+    ],
+    "nirs": [
+      "near-infrared spectroscopy",
+      "cerebral oximetry"
+    ],
+    "single ventricle": [
+      "single-ventricle physiology",
+      "SV physiology"
+    ],
+    "neonate": [
+      "neonatal",
+      "newborn",
+      "infant"
+    ]
+  },
+  "knowledge_terms": {
+    "NIRS_low": {
+      "keywords": [
+        "nirs",
+        "near-infrared",
+        "cerebral oximetry"
+      ],
+      "direction": "low",
+      "unit": "%",
+      "min_allowed": 30,
+      "max_allowed": 80
+    },
+    "O2_sat_low": {
+      "keywords": [
+        "spo2",
+        "oxygen saturation",
+        "o2 sat"
+      ],
+      "direction": "low",
+      "unit": "%",
+      "min_allowed": 60,
+      "max_allowed": 100
+    },
+    "Lactate_high": {
+      "keywords": [
+        "lactate",
+        "serum lactate"
+      ],
+      "direction": "high",
+      "unit": "mmol/L",
+      "min_allowed": 1.0,
+      "max_allowed": 15.0
+    },
+    "SBP_low": {
+      "keywords": [
+        "systolic blood pressure",
+        "sbp"
+      ],
+      "direction": "low",
+      "unit": "mmHg",
+      "min_allowed": 30,
+      "max_allowed": 90
+    },
+    "MVO2_sats_low": {
+      "keywords": [
+        "svo2",
+        "mixed venous",
+        "mvo2"
+      ],
+      "direction": "low",
+      "unit": "%",
+      "min_allowed": 30,
+      "max_allowed": 90
+    }
+  }
+}

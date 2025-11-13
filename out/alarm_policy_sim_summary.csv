@@ -1,0 +1,5 @@
+policy,sensitivity,false_alarms_per_day,median_TTD_min,n_events,n_alarms,n_fp_alarms
+A_raw_tau,0.391304347826087,4.444001991040318,28.0,69,50,31
+B_raw_tau_persist4,0.028985507246376812,0.0,43.5,69,1,0
+C_raw_tau_persist4_refr30,0.028985507246376812,0.0,43.5,69,1,0
+D_ewma_alpha0.35_hold1m_refr10m,0.028985507246376812,0.0,43.25,69,1,0

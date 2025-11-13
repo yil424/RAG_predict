@@ -1,0 +1,98 @@
+[
+  {
+    "rank": 1,
+    "doc_id": 3065,
+    "score_rrf": 0.032266458495966696,
+    "text": "interstage mortality after the Norwood procedure. J Thorac Cardiovasc Surg. 2003;126:​ 1367–1377. 3. Oster ME, Ehrlich A, King E, Petit CJ, Clabby M, Smith S, Glanville M, Anderson J, Darbie L, Beekman RH 3rd. Association of interstage home monitoring with mortality, readmissions, and weight gain: a multicenter study from the National Pediatric Cardiology Quality Improvement Collaborative. Circulation. 2015;132:502–508. 4. Hehir DA, Ghanayem NS. Single-ventricle infant home monitoring ­programs: outcomes and impact. Curr Opin Cardiol. 2013;28: 97–102. 5. Galantowicz M, Cheatham JP.",
+    "meta": {
+      "source": "rudd-et-al-2020-interstage-home-monitoring-for-infants-with-single-ventricle-heart-disease-education-and-management.txt",
+      "file_name": "rudd-et-al-2020-interstage-home-monitoring-for-infants-with-single-ventricle-heart-disease-education-and-management.txt",
+      "page": 10,
+      "year": 2020,
+      "section": "",
+      "doc_type": "guideline",
+      "pediatric": true,
+      "single_ventricle": true
+    }
+  },
+  {
+    "rank": 2,
+    "doc_id": 2213,
+    "score_rrf": 0.032018442622950824,
+    "text": "rophysiologic monitoring such as intermittent or continuous EEG (cEEG), SSEP, and cerebral oximetry. The aim of this clinical guideline for routine neuromonitoring in neonatal and pediatric patients supported on ECMO was to review current literature and provide guidance for healthcare professionals who manage neonatal and pediatric patients supported on ECMO.",
+    "meta": {
+      "source": "clinical_guidelines_for_routine_neuromonitoring_in.1.txt",
+      "file_name": "clinical_guidelines_for_routine_neuromonitoring_in.1.txt",
+      "page": 2,
+      "year": 2023,
+      "section": "",
+      "doc_type": "guideline",
+      "pediatric": true,
+      "single_ventricle": false
+    }
+  },
+  {
+    "rank": 3,
+    "doc_id": 1737,
+    "score_rrf": 0.03149801587301587,
+    "text": ", Mirza F, Doran TM, et al: Intraosseous access in the setting of pediatric critical care transport. Pediatr Crit Care Med 2005; 6:50–53 113. National Institute for Clinical Excellence: Guidance on the Use of Ultrasound Locating Devices for Placing Central Venous Catheters. Technology Appraisal Guidance No. 49, 2002",
+    "meta": {
+      "source": "american_college_of_critical_care_medicine.18.txt",
+      "file_name": "american_college_of_critical_care_medicine.18.txt",
+      "page": 25,
+      "year": 2017,
+      "section": "",
+      "doc_type": "guideline",
+      "pediatric": true,
+      "single_ventricle": false
+    }
+  },
+  {
+    "rank": 4,
+    "doc_id": 3033,
+    "score_rrf": 0.030536130536130537,
+    "text": "edure (surgical or catheterbased) deemed to reduce an infant’s risk of acute decompensation at home. Caregivers have expressed great relief around normalizing family routines and the ability to focus on the infant’s developmental progress once discharged after S2P.19 However, others shared feelings of stress, anxiety and a heightened sense of vigilance about caring for their infant without the aid of home monitoring and frequent contact with the healthcare team.20 The healthcare team should be sensitive Figure 2. Decision Algorithm for Progression to Stage 2 Palliation.",
+    "meta": {
+      "source": "rudd-et-al-2020-interstage-home-monitoring-for-infants-with-single-ventricle-heart-disease-education-and-management.txt",
+      "file_name": "rudd-et-al-2020-interstage-home-monitoring-for-infants-with-single-ventricle-heart-disease-education-and-management.txt",
+      "page": 7,
+      "year": 2020,
+      "section": "",
+      "doc_type": "guideline",
+      "pediatric": true,
+      "single_ventricle": true
+    }
+  },
+  {
+    "rank": 5,
+    "doc_id": 2318,
+    "score_rrf": 0.029850746268656716,
+    "text": "vival for pulmonary atresia with intact ventricular septum with a miniscule right ventricle Table 1. Risk factors for mortality for those undergoing a single-ventricle repair.",
+    "meta": {
+      "source": "critical-care-outcomes-in-pulmonary-atresia-and-intact-ventricular-septum-undergoing-single-ventricle-palliation.txt",
+      "file_name": "critical-care-outcomes-in-pulmonary-atresia-and-intact-ventricular-septum-undergoing-single-ventricle-palliation.txt",
+      "page": 4,
+      "year": 2010,
+      "section": "",
+      "doc_type": "review",
+      "pediatric": true,
+      "single_ventricle": true
+    }
+  },
+  {
+    "rank": 6,
+    "doc_id": 1364,
+    "score_rrf": 0.0315136476426799,
+    "text": "Cardiovasc Surg. 2016;152(3): 720-727. 34. Namachivayam SP, d’Udekem Y, Millar J, Cheung MM, Butt W. Survival status and functional outcome of children who required prolonged intensive care after cardiac surgery. J Thorac Cardiovasc Surg. 2016;152(4): 1104-1112. 35. Ghanayem NS, Hoffman GM, Mussatto KA, et al. Home surveillance program prevents interstage mortality after the Norwood procedure. J Thorac Cardiovasc Surg. 2003;126(5): 1367-1377. 36. Hehir DA, Ghanayem NS. Single-ventricle infant home monitoring programs: outcomes and impact. Curr Opin Cardiol. 2013; 28(2): 97-102. 37.",
+    "meta": {
+      "source": "alsoufi-et-al-2018-factors-associated-with-interstage-mortality-following-neonatal-single-ventricle-palliation.txt",
+      "file_name": "alsoufi-et-al-2018-factors-associated-with-interstage-mortality-following-neonatal-single-ventricle-palliation.txt",
+      "page": 8,
+      "year": 2018,
+      "section": "",
+      "doc_type": "other",
+      "pediatric": true,
+      "single_ventricle": true
+    }
+  }
+]

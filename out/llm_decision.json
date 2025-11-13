@@ -1,0 +1,14 @@
+{
+  "risk_level": "medium",
+  "trigger_alarm_now": false,
+  "key_reasons": [
+    "Tachycardia (HR 143.1 bpm) despite being on ECMO, which may indicate cardiac dysfunction or increased oxygen demand.",
+    "Hypoxemia (O2_sat 78.5%) and decreased NIRS (69.4%) suggesting inadequate oxygenation and perfusion to tissues.",
+    "Elevated lactate levels (1.96 mmol/L) indicating ongoing anaerobic metabolism."
+  ],
+  "suggested_actions": [
+    "Review ECMO circuit and blood gas management to optimize oxygen delivery and ventilation.",
+    "Consider increasing FiO2 or adjusting ECMO flow rates to improve oxygenation and perfusion.",
+    "Monitor for signs of cardiac dysfunction, including echocardiogram and serial lactate levels, and consider consulting cardiology team if necessary."
+  ]
+}

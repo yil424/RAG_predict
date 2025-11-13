@@ -1,0 +1,6 @@
+policy,cohort_events,cohort_events_detected,cohort_sensitivity,mean_false_alarms_per_day,median_median_TTD_min
+A_raw_tau,12055,8997,0.7463293239319785,4.988750622200099,16.875
+B_raw_tau_persist4,12055,166,0.013770219825798425,0.0,26.25
+C_raw_tau_persist4_refr30,12055,166,0.013770219825798425,0.0,26.25
+D_ewma_alpha0.35_hold1m_refr10m,12055,435,0.03608461219411033,0.02867098058735689,25.625
+E_highrisk_tau0.9,12055,0,0.0,0.0,

@@ -1,0 +1,42 @@
+{
+  "O2_sat_low": {
+    "suggested_threshold": 97.0,
+    "direction": "low",
+    "unit": "%",
+    "q1": 92.0,
+    "q3": 100.0,
+    "candidates_sorted": [
+      85.0,
+      88.0,
+      90.0,
+      92.0,
+      96.0,
+      97.0,
+      97.0,
+      97.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ],
+    "n_candidates": 13
+  },
+  "Lactate_high": {
+    "suggested_threshold": 2.0,
+    "direction": "high",
+    "unit": "mmol/L",
+    "q1": 1.5,
+    "q3": 4.0,
+    "candidates_sorted": [
+      1.0,
+      1.0,
+      2.0,
+      2.0,
+      4.0,
+      4.0,
+      12.0
+    ],
+    "n_candidates": 7
+  }
+}

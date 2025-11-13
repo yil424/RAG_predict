@@ -1,0 +1,19 @@
+{
+  "last_values": {
+    "HR": 144.9,
+    "RR": 45.4,
+    "O2_sat": 78.7,
+    "SBP": 71.2,
+    "DBP": 38.4,
+    "NIRS": 72.1,
+    "pH": 7.383,
+    "Lactate": 1.25,
+    "PAO2": 49.2,
+    "MVO2_sats": 67.0,
+    "CR": 0.41,
+    "BUN": 10.6
+  },
+  "now_risk": 0.0,
+  "risk_thr": 0.5,
+  "out_dir": "D:\\Project\\out"
+}

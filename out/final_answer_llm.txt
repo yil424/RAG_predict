@@ -1,0 +1,32 @@
+# LLM Decision
+- risk_level: **medium**
+- trigger_alarm_now: **False**
+- key_reasons:
+  - Tachycardia (HR 143.1 bpm) despite being on ECMO, which may indicate cardiac dysfunction or increased oxygen demand.
+  - Hypoxemia (O2_sat 78.5%) and decreased NIRS (69.4%) suggesting inadequate oxygenation and perfusion to tissues.
+  - Elevated lactate levels (1.96 mmol/L) indicating ongoing anaerobic metabolism.
+- suggested_actions:
+  - Review ECMO circuit and blood gas management to optimize oxygen delivery and ventilation.
+  - Consider increasing FiO2 or adjusting ECMO flow rates to improve oxygenation and perfusion.
+  - Monitor for signs of cardiac dysfunction, including echocardiogram and serial lactate levels, and consider consulting cardiology team if necessary.
+
+## Patient state (last 60min)
+Patient state (last 60 min):
+- HR: last=140.3, mean=143.1, min/max=137.0/151.3, slope/h=-0.60, margin(to_low(90)=50.30; to_high(190)=49.70)
+- RR: last=43.3, mean=44.8, min/max=40.3/48.6, slope/h=-2.31, margin(to_low(42)=1.30; to_high(62)=18.70)
+- O2_sat: last=78.5, mean=79.0, min/max=75.6/82.0, slope/h=+0.70, margin(to_low(72)=6.50)
+- NIRS: last=69.4, mean=69.0, min/max=65.8/73.0, slope/h=+1.10, margin(to_low(58)=11.40)
+- SBP: last=69.6, mean=71.1, min/max=66.8/75.8, slope/h=+0.80, margin(to_low(58)=11.60; to_high(90)=20.40)
+- DBP: last=40.4, mean=39.9, min/max=34.5/44.1, slope/h=+2.71, margin(to_low(32)=8.40; to_high(60)=19.60)
+- CVRP: last=6.9, mean=7.2, min/max=5.6/9.0, slope/h=+0.00, margin(to_low(3)=3.90; to_high(11.5)=4.60)
+- CVP: last=6.9, mean=7.2, min/max=5.6/9.0, slope/h=+0.00, margin(to_low(3)=3.90; to_high(11.5)=4.60)
+- Labs: pH=7.33 (last 360 min ago); BE=0.3 (last 360 min ago); PAO2=57 (last 360 min ago); Lactate=1.96 (last 360 min ago); CR=0.31 (last 360 min ago); BUN=6.8 (last 360 min ago); MVO2_sats=62.8 (last 360 min ago)
+
+## Guideline nuggets
+[1] clinical_guidelines_for_routine_neuromonitoring_in.1.txt, 2023, p.5
+- Copyright © Extracorporeal Life Support Organization. Unauthorized reproduction of this article is prohibited. CLINICAL GUIDELINES FOR ROUTINE NEUROMONITORING 899 interventions and potentially improve outcomes. This guideline provides recommendations based on currently available evidence. Figure 1 and the key recommendations below provide a summary of the recommendations for patients supported on ECMO and for specific high-risk groups. Limitations and barriers to implement the above recommendations may include resource constraints and training required for successful implementation.
+
+[3] executive_summary_of_the_second_international.8.txt, 2023, p.5
+- ible PARDS” for children on nasal modes of support such as HFNC, and enabling modifications for RLS. Tables 6–9 summarize PALICC-2 recommendations and statements in the context of a patient’s trajectory from diagnosis to follow-up. Section 1. Definition, Incidence, and Epidemiology (14) Age. Definition statement 1.1. All patients less than 18 years old without active perinatal lung disease should be diagnosed with PARDS using PALICC-2 criteria. (Ungraded DS, 94% agreement) (14).
+
+[ref] hazard_p_latest=0.2%, thr_ref=0.050, alarm_now=OFF

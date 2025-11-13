@@ -1,0 +1,26 @@
+[
+  {
+    "id": "next6h_gauge",
+    "question": "What is the predicted risk of a serious decompensation event in the next 6 hours for this patient, and how should we interpret it clinically?",
+    "answer": "**Risk Assessment:**\n\n* The probability of serious decompensation or escalation within the next 6 hours is 18.1%, which I would categorize as moderate to high risk for a single-ventricle infant.\n\n**Clinical Response:**\n\n* Closer surveillance and monitoring are warranted, including frequent assessments of hemodynamics, respiratory status, and cardiovascular function.\n* The bedside team should be prepared to rapidly respond to any signs of deterioration.\n* Frequent communication with the ECMO/heart failure team is essential to ensure timely escalation of care if needed.\n\n**Actionable Recommendation:**\n\n* Document a specific plan for escalating care in response to worsening hemodynamics or respiratory status, including target thresholds for intervention (e.g., \"If the patient's oxygen saturation falls below 80% despite supplemental oxygen therapy, initiate ECMO weaning protocol\").",
+    "image": "fig_gauge.png"
+  },
+  {
+    "id": "next6h_curve",
+    "question": "How should we interpret the recent hazard and the predicted risk over the next 6 hours for this patient?",
+    "answer": "I just analyzed the patients vitals and it indicates a relatively stable risk trend over the past 24 hours, with minimal fluctuations in hazard probability.\n\nKey points to consider:\n\n* The hazard curve suggests that the infant's risk of experiencing a complication has remained relatively low and steady, with no significant increase or decrease observed over the past day.\n* For next 6h prediction, there is no indication of an abrupt surge in risk expected within the next six hours. However, it does indicate some potential for minor fluctuations in risk within this timeframe.\n* Concrete monitoring actions include:\n\t+ Closely observing the infant's vital signs and adjusting ECMO settings as needed to maintain optimal perfusion and oxygenation.\n\t+ Keeping a high level of vigilance for any changes in the patient's condition, such as alterations in heart rate or blood pressure.",
+    "image": "fig_next6h_danger.png"
+  },
+  {
+    "id": "shap_violin",
+    "question": "Which variables are most responsible for the current hazard ",
+    "answer": "Here are 5 bullet points:\n\n• **High O2 saturation values** (0.211, 0.154) are protective features, indicating that maintaining high oxygen levels is beneficial for this patient on ECMO.\n• **Low heart rate variability** and **stable blood pressure** (HR last (5m): 0.106, DBP change (5m), pulse_pressure trend (5m)) suggest a stable hemodynamic status, which is reassuring in an infant on ECMO.\n• **Decreased oxygen saturation over time** (O2_sat min (60m): -0.154) and **low NIRS values** (NIRS var (60m): 0.023) are concerning features, indicating potential issues with tissue oxygenation and perfusion.\n\nThese results support the overall \"risk is currently low/moderate\" message by highlighting that despite some concerns about tissue oxygenation, other vital signs such as oxygen saturation, heart rate, and blood pressure are stable, suggesting a manageable level of risk.",
+    "image": "fig_shap_violin.png"
+  },
+  {
+    "id": "ridgeline",
+    "question": "What is the distribution of various vitals for the infants over the past few days",
+    "answer": "The vital sign data appears generally stable with no significant signs of drift across the 7-day period. However, closer inspection reveals some subtle day-to-day shifts.\n\n* Oxygenation (SpO2) remained relatively consistent within a narrow range (77.0-80.0), with minimal variability between days.\n* Blood pressure measures (SBP and DBP) showed slight fluctuations, but there is no clear indication of progressive deterioration or improvement in balance over the study period.\n* NIRS values exhibited some variability, dropping to 67.2 on Day 1 before stabilizing within a slightly wider range (68.0-70.3) for the remainder of the observation period.\n\nThere is limited evidence suggesting progressive deterioration in any parameter over the 7-day period.",
+    "image": "fig_ridgeline.png"
+  }
+]
