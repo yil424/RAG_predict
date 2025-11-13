@@ -1,0 +1,11 @@
+streamlit
+pandas
+numpy
+scikit-learn
+scipy
+sentence-transformers
+statsmodels
+plotly
+requests
+huggingface_hub
+joblib
