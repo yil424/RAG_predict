@@ -526,69 +526,10 @@ if "messages" not in st.session_state:
 if "patient_summary" not in st.session_state:
     st.session_state["patient_summary"] = "(no patient uploaded)"
 
-tab_chat, tab_cards = st.tabs(["💬 Chat", "📊 Summary Cards"])
+tab_cards, tab_chat = st.tabs(["📊 Summary Cards", "💬 Chat"])
 
 
-# ========== Tab 1: Chat ==========
-
-with tab_chat:
-    for m in st.session_state["messages"]:
-        with st.chat_message(m["role"]):
-            st.markdown(m["content"])
-
-    pending_q = st.session_state.pop("pending_query", None)
-
-    user_q = st.chat_input("Ask a question about the patient or ECMO guidance…")
-
-    submitted = False
-    if pending_q:
-        user_q = pending_q
-        submitted = True
-    elif user_q:
-        submitted = True
-
-    if submitted and rag is not None:
-        st.session_state["messages"].append({"role": "user", "content": user_q})
-        with st.chat_message("user"):
-            st.markdown(user_q)
-
-        with st.spinner("Thinking…"):
-            hits = rag.search(user_q, topk=topk) if rag else []
-            prompt = build_prompt_no_citations(
-                user_q,
-                st.session_state.get("patient_summary", "(no patient uploaded)"),
-                hits,
-            )
-            ans = (
-                ollama_generate(ollama_model, prompt, base_url=ollama_base_url)
-                or "LLM unavailable. Please confirm the Ollama server."
-            )
-
-        st.session_state["messages"].append({"role": "assistant", "content": ans})
-        with st.chat_message("assistant"):
-            st.markdown(ans)
-
-    if st.button("Clear chat"):
-        st.session_state["messages"] = []
-
-    st.markdown("##### 🔎 Example Questions")
-    st.caption("Clicking an example will automatically send it into the chat.")
-    examples = [
-        "Give a concise summary of the last 30 minutes and the next 2 actions.",
-        "Explain the spikes in HR over the 7 days.",
-        "Which vitals contribute most to the current risk and why?",
-        "How can we reduce risk if O2 sat is low and SBP is borderline?",
-        "Write a one-paragraph note for the attending based on current status.",
-        "Give some advice on the infant patient?",
-    ]
-    cols = st.columns(3)
-    for i, q in enumerate(examples):
-        if cols[i % 3].button(q, use_container_width=True, key=f"ex_{i}"):
-            st.session_state["pending_query"] = q
-            st.rerun()   # <-- updated from experimental_rerun
-
-
-# ========== Tab 2: Precomputed Summary Cards ==========
+# ========== Tab 1: Precomputed Summary Cards ==========
 
 with tab_cards:
     st.markdown("### 📊 Patient Visual Summary Cards")
@@ -716,6 +657,63 @@ with tab_cards:
             unsafe_allow_html=True,
         )
 
+# ========== Tab 2: Chat ==========
+
+with tab_chat:
+    for m in st.session_state["messages"]:
+        with st.chat_message(m["role"]):
+            st.markdown(m["content"])
+
+    pending_q = st.session_state.pop("pending_query", None)
+
+    user_q = st.chat_input("Ask a question about the patient or ECMO guidance…")
+
+    submitted = False
+    if pending_q:
+        user_q = pending_q
+        submitted = True
+    elif user_q:
+        submitted = True
+
+    if submitted and rag is not None:
+        st.session_state["messages"].append({"role": "user", "content": user_q})
+        with st.chat_message("user"):
+            st.markdown(user_q)
+
+        with st.spinner("Thinking…"):
+            hits = rag.search(user_q, topk=topk) if rag else []
+            prompt = build_prompt_no_citations(
+                user_q,
+                st.session_state.get("patient_summary", "(no patient uploaded)"),
+                hits,
+            )
+            ans = (
+                ollama_generate(ollama_model, prompt, base_url=ollama_base_url)
+                or "LLM unavailable. Please confirm the Ollama server."
+            )
+
+        st.session_state["messages"].append({"role": "assistant", "content": ans})
+        with st.chat_message("assistant"):
+            st.markdown(ans)
+
+    if st.button("Clear chat"):
+        st.session_state["messages"] = []
+
+    st.markdown("##### 🔎 Example Questions")
+    st.caption("Clicking an example will automatically send it into the chat.")
+    examples = [
+        "Give a concise summary of the last 30 minutes and the next 2 actions.",
+        "Explain the spikes in HR over the 7 days.",
+        "Which vitals contribute most to the current risk and why?",
+        "How can we reduce risk if O2 sat is low and SBP is borderline?",
+        "Write a one-paragraph note for the attending based on current status.",
+        "Give some advice on the infant patient?",
+    ]
+    cols = st.columns(3)
+    for i, q in enumerate(examples):
+        if cols[i % 3].button(q, use_container_width=True, key=f"ex_{i}"):
+            st.session_state["pending_query"] = q
+            st.rerun()   # <-- updated from experimental_rerun
 
 
 
