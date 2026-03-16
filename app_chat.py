@@ -342,10 +342,193 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
+# ====================== HIDE STREAMLIT TOOLBAR / ADVANCED ======================
+st.markdown(
+    """
+    <style>
+      /* Hide Streamlit toolbar (the 'Advanced' menu / gear) */
+      [data-testid="stToolbar"] {visibility: hidden !important; height: 0px !important;}
+      /* Hide hamburger menu in top-right (optional) */
+      #MainMenu {visibility: hidden;}
+      /* Hide "Made with Streamlit" footer (optional) */
+      footer {visibility: hidden;}
+      /* Reduce extra top padding after hiding toolbar */
+      .block-container { padding-top: 1.25rem; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# ---- Enlarge font in chat messages ----
+st.markdown(
+    """
+    <style>
+    /* Make user+assistant chat text larger */
+    .stChatMessage .stMarkdown p {
+        font-size: 1.6rem;
+        line-height: 1.6;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# ====================== HERO / BRANDING ======================
+
+st.markdown(
+    """
+    <style>
+      .hero {
+        border: 1px solid rgba(148,163,184,.35);
+        border-radius: 22px;
+        padding: 18px 20px;
+        background: linear-gradient(135deg, rgba(14,165,233,.12), rgba(99,102,241,.10), rgba(16,185,129,.10));
+        box-shadow: 0 8px 24px rgba(2,6,23,.05);
+        margin-bottom: 14px;
+      }
+      .hero-top{
+        display:flex; align-items:center; justify-content:space-between; gap:12px;
+      }
+      .hero-title{
+        font-size: 1.8rem;
+        font-weight: 800;
+        margin: 0;
+      }
+      .hero-sub{
+        margin: 6px 0 0 0;
+        color: rgba(15,23,42,.75);
+        font-size: 1.02rem;
+        line-height: 1.35;
+      }
+      .pill{
+        display:inline-flex;
+        align-items:center;
+        gap:8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(148,163,184,.45);
+        background: rgba(255,255,255,.55);
+        font-weight: 700;
+        font-size: .95rem;
+        white-space: nowrap;
+      }
+      .quickgrid{
+        display:grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 12px;
+      }
+      .quickcard{
+        border: 1px solid rgba(148,163,184,.35);
+        border-radius: 16px;
+        padding: 12px 12px;
+        background: rgba(255,255,255,.58);
+      }
+      .quickcard .k{
+        font-weight: 800;
+        margin-bottom: 4px;
+      }
+      .quickcard .v{
+        color: rgba(15,23,42,.72);
+        font-size: .95rem;
+        line-height: 1.3;
+      }
+      @media (max-width: 900px){
+        .quickgrid{ grid-template-columns: 1fr; }
+      }
+    </style>
+
+    <div class="hero">
+      <div class="hero-top">
+        <div>
+          <div class="hero-title">🫀 Neonatal ECMO Risk Dashboard</div>
+          <div class="hero-sub">
+            Combine <b>patient time-series</b> + <b>early-warning risk</b> + <b>RAG guideline evidence</b> to support bedside decisions (single-ventricle focused).
+          </div>
+        </div>
+        <div class="pill">🧠 RAG + 📈 Early Warning + 💬 Chat</div>
+      </div>
+
+      <div class="quickgrid">
+        <div class="quickcard">
+          <div class="k">1) Upload / Load</div>
+          <div class="v">Upload infant vitals/labs CSV (or load sample) to generate risk & alarms.</div>
+        </div>
+        <div class="quickcard">
+          <div class="k">2) Review Cards</div>
+          <div class="v">See next-6h probability, trajectory, explanations, and distributions at a glance.</div>
+        </div>
+        <div class="quickcard">
+          <div class="k">3) Ask the Chat</div>
+          <div class="v">Ask for concise guidance grounded in patient summary + internal evidence snippets.</div>
+        </div>
+      </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+# ====================== CUSTOM TOP BAR (fills left blank) ======================
+st.markdown(
+    """
+    <style>
+      .topbar{
+        display:flex; align-items:center; justify-content:space-between;
+        gap:12px; margin: 0.2rem 0 0.8rem 0;
+      }
+      .brand{
+        display:flex; align-items:center; gap:12px;
+      }
+      .brand h1{
+        font-size: 2.05rem; font-weight: 850; margin:0; line-height:1.05;
+      }
+      .brand .sub{
+        margin-top: 0.25rem;
+        color: rgba(15,23,42,.65);
+        font-size: 0.95rem;
+      }
+      .pillrow{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+      .pill{
+        border: 1px solid rgba(148,163,184,.40);
+        background: rgba(255,255,255,.65);
+        padding: 7px 10px; border-radius: 999px;
+        font-weight: 700; font-size: 0.88rem;
+        display:inline-flex; align-items:center; gap:8px;
+      }
+      .logoBox{
+        width: 44px; height: 44px; border-radius: 14px;
+        background: linear-gradient(135deg, rgba(14,165,233,.20), rgba(99,102,241,.18), rgba(16,185,129,.18));
+        border: 1px solid rgba(148,163,184,.35);
+        display:flex; align-items:center; justify-content:center;
+        box-shadow: 0 8px 18px rgba(2,6,23,.06);
+        flex: 0 0 auto;
+      }
+      @media(max-width: 900px){
+        .topbar{ flex-direction: column; align-items:flex-start; }
+        .pillrow{ justify-content:flex-start; }
+      }
+    </style>
+
+    <div class="topbar">
+      <div class="brand">
+        <div class="logoBox">🫀</div>
+        <div>
+          <h1>Neonatal ECMO: RAG Chat + Early Warning</h1>
+          <div class="sub">Single-ventricle focused • Patient risk trajectory • Guideline-grounded suggestions</div>
+        </div>
+      </div>
+      <div class="pillrow">
+        <div class="pill">🧠 RAG Evidence</div>
+        <div class="pill">📈 Early Warning</div>
+        <div class="pill">💬 Clinician Chat</div>
+      </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
 # Title + Advanced
 c_gear, c_title = st.columns([0.10, 0.90])
-with c_title:
-    st.title("ECMO RAG Chat + Early Warning")
 
 corpus_dir = str(Path("./store_txt_rag").resolve())
 use_dense = True
@@ -526,7 +709,7 @@ if "messages" not in st.session_state:
 if "patient_summary" not in st.session_state:
     st.session_state["patient_summary"] = "(no patient uploaded)"
 
-tab_cards, tab_chat = st.tabs(["📊 Summary Cards", "💬 Chat"])
+tab_cards, tab_chat = st.tabs(["📊 Neonatal ECMO Dashboard", "💬 Ask ECMO (RAG Chat)"])
 
 
 # ========== Tab 1: Precomputed Summary Cards ==========
@@ -534,7 +717,8 @@ tab_cards, tab_chat = st.tabs(["📊 Summary Cards", "💬 Chat"])
 with tab_cards:
     st.markdown("### 📊 Patient Visual Summary Cards")
     st.caption(
-        "Curated offline cards built from model, Select a card to view its narrative and figure."
+        "Curated offline cards built from model outputs. "
+        "Review them quickly like a clinical dashboard."
     )
 
     cards = load_precomputed_cards()
@@ -545,8 +729,6 @@ with tab_cards:
             "Please generate precomputed cards and figures in the project folder."
         )
     else:
-        c_sel, c_view = st.columns([0.24, 0.76], gap="large")
-
         preferred_order = [
             "next6h_gauge",
             "next6h_curve",
@@ -560,98 +742,100 @@ with tab_cards:
 
         cards_sorted = sorted(cards, key=sort_key)
 
-        def label_for(c: Dict[str, Any]) -> str:
-            cid = c.get("id", "")
+        # --- nice card styling ---
+        st.markdown(
+            """
+            <style>
+              .dashcard{
+                border: 1px solid rgba(148,163,184,.35);
+                border-radius: 18px;
+                padding: 14px 14px;
+                background: linear-gradient(180deg, rgba(255,255,255,.75), rgba(248,250,252,.85));
+                box-shadow: 0 8px 24px rgba(2,6,23,.05);
+                margin-bottom: 14px;
+              }
+              .dashcard h4{
+                margin: 0 0 6px 0;
+                font-size: 1.15rem;
+              }
+              .dashmeta{
+                color: rgba(15,23,42,.65);
+                font-size: .92rem;
+                margin-bottom: 10px;
+              }
+              .dashdivider{
+                height:1px; background: rgba(148,163,184,.25); margin: 10px 0 10px 0;
+              }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        # Optional: small overview metrics row if already computed
+        c1, c2, c3, c4 = st.columns(4)
+        p6 = st.session_state.get("p6h", None)
+        alarms = st.session_state.get("alarms", [])
+        smooth = st.session_state.get("smooth", None)
+        if p6 is not None:
+            c1.metric("Next 6h Probability", f"{p6*100:.1f}%")
+        else:
+            c1.metric("Next 6h Probability", "—")
+        c2.metric("Alarms (count)", f"{len(alarms)}")
+        if smooth is not None and len(smooth) > 0:
+            c3.metric("Current Smoothed Risk", f"{float(smooth[-1]):.3f}")
+        else:
+            c3.metric("Current Smoothed Risk", "—")
+        c4.metric("RAG Corpus", "Loaded" if st.session_state.get("RAG") else "—")
+
+        st.markdown("")
+
+        # --- grid layout: 2 columns ---
+        cols = st.columns(2, gap="large")
+
+        def pretty_title(cid: str) -> str:
             if cid == "next6h_gauge":
                 return "1️⃣ Next 6h event probability"
             if cid == "next6h_curve":
                 return "2️⃣ Next 6h danger trajectory"
             if cid == "shap_violin":
-                return "3️⃣ Why this risk?"
+                return "3️⃣ Why this risk? (feature drivers)"
             if cid == "ridgeline":
                 return "4️⃣ Multi-day vital distributions"
-            q = c.get("question", "").strip()
-            return (q[:60] + "…") if len(q) > 60 else (q or cid or "Card")
+            return cid or "Card"
 
-        with c_sel:
-            st.markdown("""
-            <style>
-            .tilewrap .stButton>button{
-                width:100%;
-                text-align:left;
-                padding:16px 18px;
-                margin:10px 0;
-                border:1px solid #e5e7eb;
-                border-radius:16px;
-                background:linear-gradient(180deg,#ffffff,#f8fafc);
-                box-shadow: 0 1px 0 rgba(0,0,0,0.02);
-                font-size:1.10rem;
-                line-height:1.35;
-                font-weight:650;
-                transition: all .15s ease;
-                min-height:84px; 
-                white-space: pre-line;  
-            }
-            .tilewrap .stButton>button:hover{
-                background:#f3f4f6;
-                border-color:#d1d5db;
-                transform: translateY(-1px);
-            }
-            .tilewrap .stButton.selected>button{
-                background:linear-gradient(180deg,#eef2ff,#e0e7ff);
-                border-color:#93c5fd;
-                box-shadow: 0 0 0 2px #bfdbfe inset;
-            }
-            </style>
-            """, unsafe_allow_html=True)
+        for i, card in enumerate(cards_sorted):
+            col = cols[i % 2]
+            with col:
+                cid = str(card.get("id", "")).strip()
+                title = pretty_title(cid)
 
-            st.markdown("#### Select a card")
-
-            options = {label_for(c): c for c in cards_sorted}
-            labels = list(options.keys())
-            selected_label = st.session_state.get("card_selected_label", labels[0])
-
-            def subtitle_for(lbl: str) -> str:
-                if "Next 6h event probability" in lbl: return "— Gauge of near-term risk"
-                if "Next 6h danger trajectory" in lbl: return "— EWMA curve & trend"
-                if "Why this risk?" in lbl or "shap" in lbl.lower(): return "— Feature contributions (SHAP-like)"
-                if "Multi-day vital distributions" in lbl or "ridgeline" in lbl.lower(): return "— Distribution & drift"
-                return "— Tap to open"
-
-            st.markdown('<div class="tilewrap">', unsafe_allow_html=True)
-            for i, lbl in enumerate(labels):
-                sub = subtitle_for(lbl)
-                container_class = "selected" if lbl == selected_label else ""
-                st.markdown(f'<div class="stButton {container_class}">', unsafe_allow_html=True)
-                if st.button(f"{lbl}\n{sub}", use_container_width=True, key=f"tile_{i}"):
-                    st.session_state["card_selected_label"] = lbl
-                    selected_label = lbl
-                st.markdown("</div>", unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        with c_view:
-            card = options[selected_label]
-
-            st.markdown("#### 📝 Question")
-            st.markdown(card["question"])
-
-            st.markdown("#### 💡 Explanation")
-            st.markdown(card["answer"])
-
-            img_path = card.get("image") or ""
-            if img_path and Path(img_path).exists():
-                st.markdown("#### 📷 Figure")
-                st.image(str(img_path), use_container_width=True)  # <-- use_container_width
-            else:
-                st.caption(
-                    "No figure file found for this card. "
-                    "Check the `image` path in `precomputed_cards.json`."
+                st.markdown(f'<div class="dashcard">', unsafe_allow_html=True)
+                st.markdown(f"#### {title}")
+                st.markdown(
+                    f'<div class="dashmeta">Neonatal ECMO • Visual Summary • Offline curated</div>',
+                    unsafe_allow_html=True,
                 )
+
+                # Use expander to keep page readable but still "same page"
+                with st.expander("📝 Question & Explanation", expanded=True if i < 2 else False):
+                    st.markdown("**Question**")
+                    st.markdown(card.get("question", ""))
+                    st.markdown('<div class="dashdivider"></div>', unsafe_allow_html=True)
+                    st.markdown("**Explanation**")
+                    st.markdown(card.get("answer", ""))
+
+                img_path = (card.get("image") or "").strip()
+                if img_path and Path(img_path).exists():
+                    st.image(str(img_path), use_container_width=True)
+                else:
+                    st.caption("Figure not found. Check the `image` path in `precomputed_cards.json`.")
+
+                st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown(
             """
             <div style="margin-top:0.8rem;font-size:0.78rem;color:#9ca3af;">
-            These views are generated offline from sample dataset and RAG corpus.
+            These views are generated offline from the sample dataset and RAG corpus.
             </div>
             """,
             unsafe_allow_html=True,
@@ -714,6 +898,4 @@ with tab_chat:
         if cols[i % 3].button(q, use_container_width=True, key=f"ex_{i}"):
             st.session_state["pending_query"] = q
             st.rerun()   # <-- updated from experimental_rerun
-
-
 
