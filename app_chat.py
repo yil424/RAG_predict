@@ -163,7 +163,7 @@ def ollama_generate(model: str, prompt: str, base_url: str, timeout: int = 120) 
 
     try:
         hf_token = os.getenv("HUGGINGFACEHUB_API_TOKEN", "")
-        hf_model = os.getenv("HF_MODEL", "meta-llama/Llama-3.2-3B-Instruct")
+        hf_model = os.getenv("HF_MODEL", "Qwen/Qwen2.5-1.5B-Instruct")
         if hf_token:
             from huggingface_hub import InferenceClient
             client = InferenceClient(hf_model, token=hf_token)
