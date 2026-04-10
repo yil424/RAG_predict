@@ -4,8 +4,7 @@
 #   streamlit run app_chat.py
 
 from __future__ import annotations
-import os, json, requests, pickle
-import traceback
+import os, json, pickle
 import joblib
 from pathlib import Path
 from typing import List, Dict, Any, Optional
@@ -16,6 +15,7 @@ import scipy.sparse as sp
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 import streamlit as st
+from huggingface_hub import InferenceClient
 
 import plotly.graph_objects as go
 from scipy.ndimage import gaussian_filter1d
@@ -69,58 +69,6 @@ try:
     _HAS_ST = True
 except Exception:
     _HAS_ST = False
-
-
-def _get_secret(name: str, default: str = "") -> str:
-    try:
-        v = st.secrets.get(name, default)
-        return str(v) if v is not None else default
-    except Exception:
-        return os.getenv(name, default)
-
-
-def _hf_chat_generate(prompt: str, *, model: str, token: str, provider: str = "auto", timeout: int = 120) -> str:
-    from huggingface_hub import InferenceClient
-
-    messages = [
-        {"role": "system", "content": "You are a careful clinical assistant. Answer clearly and concisely."},
-        {"role": "user", "content": prompt},
-    ]
-
-    client = InferenceClient(
-        provider=provider,
-        api_key=token,
-        timeout=timeout,
-    )
-
-    try:
-        out = client.chat_completion(
-            model=model,
-            messages=messages,
-            max_tokens=512,
-            temperature=0.4,
-            top_p=0.9,
-        )
-        content = out.choices[0].message.content
-        if isinstance(content, str):
-            return content.strip()
-        if isinstance(content, list):
-            parts = []
-            for item in content:
-                if isinstance(item, dict) and item.get("type") == "text":
-                    parts.append(item.get("text", ""))
-            return "".join(parts).strip()
-        return str(content).strip()
-    except Exception:
-        out = client.text_generation(
-            prompt=prompt,
-            model=model,
-            max_new_tokens=512,
-            temperature=0.4,
-            top_p=0.9,
-            repetition_penalty=1.05,
-        )
-        return (out or "").strip()
 
 
 class RagStore:
@@ -204,53 +152,62 @@ class RagStore:
         return rows
 
 
-# ====================== LLM via Ollama / Hugging Face ======================
-def ollama_generate(model: str, prompt: str, base_url: str, timeout: int = 120) -> Optional[str]:
-    debug_msgs = []
+# ====================== LLM via Hugging Face ======================
+def hf_generate(
+    prompt: str,
+    timeout: int = 120,
+    system_msg: str = "You are a careful clinical assistant."
+) -> Optional[str]:
+    """
+    Generate a response using Hugging Face Inference API.
 
-    # 1) Try local Ollama first
-    url = f"{base_url.rstrip('/')}/api/generate"
+    Config priority:
+    1) Streamlit secrets: HF_TOKEN, HF_MODEL, HF_PROVIDER
+    2) Environment vars:   HF_TOKEN, HF_MODEL, HF_PROVIDER
+    """
+    hf_token = st.secrets.get("HF_TOKEN", os.getenv("HF_TOKEN", ""))
+    hf_model = st.secrets.get(
+        "HF_MODEL",
+        os.getenv("HF_MODEL", "meta-llama/Llama-3.1-8B-Instruct")
+    )
+    hf_provider = st.secrets.get(
+        "HF_PROVIDER",
+        os.getenv("HF_PROVIDER", "auto")
+    )
+
+    if not hf_token:
+        st.error("HF_TOKEN not found. Set it in .streamlit/secrets.toml or environment variables.")
+        return None
+
     try:
-        resp = requests.post(
-            url,
-            json={"model": model, "prompt": prompt, "stream": False},
+        client = InferenceClient(
+            provider=hf_provider,
+            api_key=hf_token,
             timeout=timeout,
         )
-        if resp.status_code == 200:
-            text = resp.json().get("response", "").strip()
-            if text:
-                st.session_state["llm_backend"] = f"Ollama: {model}"
-                return text
-        else:
-            debug_msgs.append(f"Ollama HTTP {resp.status_code}: {resp.text[:200]}")
+
+        completion = client.chat_completion(
+            model=hf_model,
+            messages=[
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": prompt},
+            ],
+            max_tokens=400,
+            temperature=0.4,
+        )
+
+        if completion and completion.choices:
+            msg = completion.choices[0].message
+            text = getattr(msg, "content", None)
+            if isinstance(text, str) and text.strip():
+                return text.strip()
+
+        st.error("Hugging Face returned an empty response.")
+        return None
+
     except Exception as e:
-        debug_msgs.append(f"Ollama error: {e}")
-
-    # 2) Try Hugging Face Inference Providers
-    hf_token = _get_secret("HF_TOKEN") or _get_secret("HUGGINGFACEHUB_API_TOKEN")
-    hf_model = _get_secret("HF_MODEL", "meta-llama/Llama-3.1-8B-Instruct")
-    hf_provider = _get_secret("HF_PROVIDER", "auto")
-
-    if hf_token:
-        try:
-            text = _hf_chat_generate(
-                prompt,
-                model=hf_model,
-                token=hf_token,
-                provider=hf_provider,
-                timeout=timeout,
-            )
-            if text:
-                st.session_state["llm_backend"] = f"Hugging Face: {hf_model} ({hf_provider})"
-                return text
-        except Exception as e:
-            debug_msgs.append(f"HF error: {e}")
-            debug_msgs.append(traceback.format_exc(limit=1))
-    else:
-        debug_msgs.append("HF token missing. Set HF_TOKEN or HUGGINGFACEHUB_API_TOKEN.")
-
-    st.session_state["llm_debug"] = " | ".join(debug_msgs[-4:])
-    return None
+        st.error(f"Hugging Face call failed: {e}")
+        return None
 
 # ====================== Risk, Alarms, Forecast core ======================
 def _sig(z: np.ndarray) -> np.ndarray:
@@ -410,23 +367,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# ====================== HIDE STREAMLIT TOOLBAR / ADVANCED ======================
-st.markdown(
-    """
-    <style>
-      /* Hide Streamlit toolbar (the 'Advanced' menu / gear) */
-      [data-testid="stToolbar"] {visibility: hidden !important; height: 0px !important;}
-      /* Hide hamburger menu in top-right (optional) */
-      #MainMenu {visibility: hidden;}
-      /* Hide "Made with Streamlit" footer (optional) */
-      footer {visibility: hidden;}
-      /* Reduce extra top padding after hiding toolbar */
-      .block-container { padding-top: 1.25rem; }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
 # ---- Enlarge font in chat messages ----
 st.markdown(
     """
@@ -441,169 +381,16 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ====================== HERO / BRANDING ======================
-
-st.markdown(
-    """
-    <style>
-      .hero {
-        border: 1px solid rgba(148,163,184,.35);
-        border-radius: 22px;
-        padding: 18px 20px;
-        background: linear-gradient(135deg, rgba(14,165,233,.12), rgba(99,102,241,.10), rgba(16,185,129,.10));
-        box-shadow: 0 8px 24px rgba(2,6,23,.05);
-        margin-bottom: 14px;
-      }
-      .hero-top{
-        display:flex; align-items:center; justify-content:space-between; gap:12px;
-      }
-      .hero-title{
-        font-size: 1.8rem;
-        font-weight: 800;
-        margin: 0;
-      }
-      .hero-sub{
-        margin: 6px 0 0 0;
-        color: rgba(15,23,42,.75);
-        font-size: 1.02rem;
-        line-height: 1.35;
-      }
-      .pill{
-        display:inline-flex;
-        align-items:center;
-        gap:8px;
-        padding: 8px 12px;
-        border-radius: 999px;
-        border: 1px solid rgba(148,163,184,.45);
-        background: rgba(255,255,255,.55);
-        font-weight: 700;
-        font-size: .95rem;
-        white-space: nowrap;
-      }
-      .quickgrid{
-        display:grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 10px;
-        margin-top: 12px;
-      }
-      .quickcard{
-        border: 1px solid rgba(148,163,184,.35);
-        border-radius: 16px;
-        padding: 12px 12px;
-        background: rgba(255,255,255,.58);
-      }
-      .quickcard .k{
-        font-weight: 800;
-        margin-bottom: 4px;
-      }
-      .quickcard .v{
-        color: rgba(15,23,42,.72);
-        font-size: .95rem;
-        line-height: 1.3;
-      }
-      @media (max-width: 900px){
-        .quickgrid{ grid-template-columns: 1fr; }
-      }
-    </style>
-
-    <div class="hero">
-      <div class="hero-top">
-        <div>
-          <div class="hero-title">🫀 Neonatal ECMO Risk Dashboard</div>
-          <div class="hero-sub">
-            Combine <b>patient time-series</b> + <b>early-warning risk</b> + <b>RAG guideline evidence</b> to support bedside decisions (single-ventricle focused).
-          </div>
-        </div>
-        <div class="pill">🧠 RAG + 📈 Early Warning + 💬 Chat</div>
-      </div>
-
-      <div class="quickgrid">
-        <div class="quickcard">
-          <div class="k">1) Upload / Load</div>
-          <div class="v">Upload infant vitals/labs CSV (or load sample) to generate risk & alarms.</div>
-        </div>
-        <div class="quickcard">
-          <div class="k">2) Review Cards</div>
-          <div class="v">See next-6h probability, trajectory, explanations, and distributions at a glance.</div>
-        </div>
-        <div class="quickcard">
-          <div class="k">3) Ask the Chat</div>
-          <div class="v">Ask for concise guidance grounded in patient summary + internal evidence snippets.</div>
-        </div>
-      </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-# ====================== CUSTOM TOP BAR (fills left blank) ======================
-st.markdown(
-    """
-    <style>
-      .topbar{
-        display:flex; align-items:center; justify-content:space-between;
-        gap:12px; margin: 0.2rem 0 0.8rem 0;
-      }
-      .brand{
-        display:flex; align-items:center; gap:12px;
-      }
-      .brand h1{
-        font-size: 2.05rem; font-weight: 850; margin:0; line-height:1.05;
-      }
-      .brand .sub{
-        margin-top: 0.25rem;
-        color: rgba(15,23,42,.65);
-        font-size: 0.95rem;
-      }
-      .pillrow{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
-      .pill{
-        border: 1px solid rgba(148,163,184,.40);
-        background: rgba(255,255,255,.65);
-        padding: 7px 10px; border-radius: 999px;
-        font-weight: 700; font-size: 0.88rem;
-        display:inline-flex; align-items:center; gap:8px;
-      }
-      .logoBox{
-        width: 44px; height: 44px; border-radius: 14px;
-        background: linear-gradient(135deg, rgba(14,165,233,.20), rgba(99,102,241,.18), rgba(16,185,129,.18));
-        border: 1px solid rgba(148,163,184,.35);
-        display:flex; align-items:center; justify-content:center;
-        box-shadow: 0 8px 18px rgba(2,6,23,.06);
-        flex: 0 0 auto;
-      }
-      @media(max-width: 900px){
-        .topbar{ flex-direction: column; align-items:flex-start; }
-        .pillrow{ justify-content:flex-start; }
-      }
-    </style>
-
-    <div class="topbar">
-      <div class="brand">
-        <div class="logoBox">🫀</div>
-        <div>
-          <h1>Neonatal ECMO: RAG Chat + Early Warning</h1>
-          <div class="sub">Single-ventricle focused • Patient risk trajectory • Guideline-grounded suggestions</div>
-        </div>
-      </div>
-      <div class="pillrow">
-        <div class="pill">🧠 RAG Evidence</div>
-        <div class="pill">📈 Early Warning</div>
-        <div class="pill">💬 Clinician Chat</div>
-      </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
 # Title + Advanced
 c_gear, c_title = st.columns([0.10, 0.90])
+with c_title:
+    st.title("ECMO RAG Chat + Early Warning")
 
 corpus_dir = str(Path("./store_txt_rag").resolve())
 use_dense = True
 dense_model = "BAAI/bge-small-en-v1.5"
-default_base = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-ollama_base_url = default_base
-ollama_model = "llama3.1:8b"
+hf_model_default = st.secrets.get("HF_MODEL", os.getenv("HF_MODEL", "meta-llama/Llama-3.1-8B-Instruct"))
+hf_provider_default = st.secrets.get("HF_PROVIDER", os.getenv("HF_PROVIDER", "auto"))
 topk = 8
 alpha = 0.50
 thr = 0.50
@@ -638,18 +425,20 @@ with c_gear:
         dense_model = st.text_input("Dense model", value=dense_model)
 
         st.markdown("---")
-        st.caption("Generation")
-        ollama_base_url = st.text_input("Ollama base URL", value=ollama_base_url)
-        ollama_model = st.text_input("Ollama model", value=ollama_model)
-        st.text_input("HF model", value=_get_secret("HF_MODEL", "meta-llama/Llama-3.1-8B-Instruct"), key="hf_model_ui")
-        st.text_input("HF provider", value=_get_secret("HF_PROVIDER", "auto"), key="hf_provider_ui")
-        st.text_input("HF token", value="", type="password", key="hf_token_ui", help="Optional for local testing. Prefer Streamlit secrets or environment variables in deployment.")
-        if st.session_state.get("hf_model_ui"):
-            os.environ["HF_MODEL"] = st.session_state["hf_model_ui"]
-        if st.session_state.get("hf_provider_ui"):
-            os.environ["HF_PROVIDER"] = st.session_state["hf_provider_ui"]
-        if st.session_state.get("hf_token_ui"):
-            os.environ["HF_TOKEN"] = st.session_state["hf_token_ui"]
+        st.caption("Hugging Face Generation")
+        hf_model_ui = st.text_input("HF model", value=hf_model_default)
+        hf_provider_ui = st.text_input("HF provider", value=hf_provider_default)
+        hf_token_ui = st.text_input(
+            "HF token (optional; leave blank if using secrets)",
+            value="",
+            type="password",
+        )
+        if hf_model_ui:
+            os.environ["HF_MODEL"] = hf_model_ui
+        if hf_provider_ui:
+            os.environ["HF_PROVIDER"] = hf_provider_ui
+        if hf_token_ui:
+            os.environ["HF_TOKEN"] = hf_token_ui
         topk = st.slider("Internal top-k chunks", 3, 12, topk)
 
         st.markdown("---")
@@ -786,7 +575,7 @@ if "messages" not in st.session_state:
 if "patient_summary" not in st.session_state:
     st.session_state["patient_summary"] = "(no patient uploaded)"
 
-tab_cards, tab_chat = st.tabs(["📊 Neonatal ECMO Dashboard", "💬 Ask ECMO (RAG Chat)"])
+tab_cards, tab_chat = st.tabs(["📊 Summary Cards", "💬 Chat"])
 
 
 # ========== Tab 1: Precomputed Summary Cards ==========
@@ -794,8 +583,7 @@ tab_cards, tab_chat = st.tabs(["📊 Neonatal ECMO Dashboard", "💬 Ask ECMO (R
 with tab_cards:
     st.markdown("### 📊 Patient Visual Summary Cards")
     st.caption(
-        "Curated offline cards built from model outputs. "
-        "Review them quickly like a clinical dashboard."
+        "Curated offline cards built from model, Select a card to view its narrative and figure."
     )
 
     cards = load_precomputed_cards()
@@ -806,6 +594,8 @@ with tab_cards:
             "Please generate precomputed cards and figures in the project folder."
         )
     else:
+        c_sel, c_view = st.columns([0.24, 0.76], gap="large")
+
         preferred_order = [
             "next6h_gauge",
             "next6h_curve",
@@ -819,100 +609,98 @@ with tab_cards:
 
         cards_sorted = sorted(cards, key=sort_key)
 
-        # --- nice card styling ---
-        st.markdown(
-            """
-            <style>
-              .dashcard{
-                border: 1px solid rgba(148,163,184,.35);
-                border-radius: 18px;
-                padding: 14px 14px;
-                background: linear-gradient(180deg, rgba(255,255,255,.75), rgba(248,250,252,.85));
-                box-shadow: 0 8px 24px rgba(2,6,23,.05);
-                margin-bottom: 14px;
-              }
-              .dashcard h4{
-                margin: 0 0 6px 0;
-                font-size: 1.15rem;
-              }
-              .dashmeta{
-                color: rgba(15,23,42,.65);
-                font-size: .92rem;
-                margin-bottom: 10px;
-              }
-              .dashdivider{
-                height:1px; background: rgba(148,163,184,.25); margin: 10px 0 10px 0;
-              }
-            </style>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        # Optional: small overview metrics row if already computed
-        c1, c2, c3, c4 = st.columns(4)
-        p6 = st.session_state.get("p6h", None)
-        alarms = st.session_state.get("alarms", [])
-        smooth = st.session_state.get("smooth", None)
-        if p6 is not None:
-            c1.metric("Next 6h Probability", f"{p6*100:.1f}%")
-        else:
-            c1.metric("Next 6h Probability", "—")
-        c2.metric("Alarms (count)", f"{len(alarms)}")
-        if smooth is not None and len(smooth) > 0:
-            c3.metric("Current Smoothed Risk", f"{float(smooth[-1]):.3f}")
-        else:
-            c3.metric("Current Smoothed Risk", "—")
-        c4.metric("RAG Corpus", "Loaded" if st.session_state.get("RAG") else "—")
-
-        st.markdown("")
-
-        # --- grid layout: 2 columns ---
-        cols = st.columns(2, gap="large")
-
-        def pretty_title(cid: str) -> str:
+        def label_for(c: Dict[str, Any]) -> str:
+            cid = c.get("id", "")
             if cid == "next6h_gauge":
                 return "1️⃣ Next 6h event probability"
             if cid == "next6h_curve":
                 return "2️⃣ Next 6h danger trajectory"
             if cid == "shap_violin":
-                return "3️⃣ Why this risk? (feature drivers)"
+                return "3️⃣ Why this risk?"
             if cid == "ridgeline":
                 return "4️⃣ Multi-day vital distributions"
-            return cid or "Card"
+            q = c.get("question", "").strip()
+            return (q[:60] + "…") if len(q) > 60 else (q or cid or "Card")
 
-        for i, card in enumerate(cards_sorted):
-            col = cols[i % 2]
-            with col:
-                cid = str(card.get("id", "")).strip()
-                title = pretty_title(cid)
+        with c_sel:
+            st.markdown("""
+            <style>
+            .tilewrap .stButton>button{
+                width:100%;
+                text-align:left;
+                padding:16px 18px;
+                margin:10px 0;
+                border:1px solid #e5e7eb;
+                border-radius:16px;
+                background:linear-gradient(180deg,#ffffff,#f8fafc);
+                box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+                font-size:1.10rem;
+                line-height:1.35;
+                font-weight:650;
+                transition: all .15s ease;
+                min-height:84px; 
+                white-space: pre-line;  
+            }
+            .tilewrap .stButton>button:hover{
+                background:#f3f4f6;
+                border-color:#d1d5db;
+                transform: translateY(-1px);
+            }
+            .tilewrap .stButton.selected>button{
+                background:linear-gradient(180deg,#eef2ff,#e0e7ff);
+                border-color:#93c5fd;
+                box-shadow: 0 0 0 2px #bfdbfe inset;
+            }
+            </style>
+            """, unsafe_allow_html=True)
 
-                st.markdown(f'<div class="dashcard">', unsafe_allow_html=True)
-                st.markdown(f"#### {title}")
-                st.markdown(
-                    f'<div class="dashmeta">Neonatal ECMO • Visual Summary • Offline curated</div>',
-                    unsafe_allow_html=True,
-                )
+            st.markdown("#### Select a card")
 
-                # Use expander to keep page readable but still "same page"
-                with st.expander("📝 Question & Explanation", expanded=True if i < 2 else False):
-                    st.markdown("**Question**")
-                    st.markdown(card.get("question", ""))
-                    st.markdown('<div class="dashdivider"></div>', unsafe_allow_html=True)
-                    st.markdown("**Explanation**")
-                    st.markdown(card.get("answer", ""))
+            options = {label_for(c): c for c in cards_sorted}
+            labels = list(options.keys())
+            selected_label = st.session_state.get("card_selected_label", labels[0])
 
-                img_path = (card.get("image") or "").strip()
-                if img_path and Path(img_path).exists():
-                    st.image(str(img_path), use_container_width=True)
-                else:
-                    st.caption("Figure not found. Check the `image` path in `precomputed_cards.json`.")
+            def subtitle_for(lbl: str) -> str:
+                if "Next 6h event probability" in lbl: return "— Gauge of near-term risk"
+                if "Next 6h danger trajectory" in lbl: return "— EWMA curve & trend"
+                if "Why this risk?" in lbl or "shap" in lbl.lower(): return "— Feature contributions (SHAP-like)"
+                if "Multi-day vital distributions" in lbl or "ridgeline" in lbl.lower(): return "— Distribution & drift"
+                return "— Tap to open"
 
+            st.markdown('<div class="tilewrap">', unsafe_allow_html=True)
+            for i, lbl in enumerate(labels):
+                sub = subtitle_for(lbl)
+                container_class = "selected" if lbl == selected_label else ""
+                st.markdown(f'<div class="stButton {container_class}">', unsafe_allow_html=True)
+                if st.button(f"{lbl}\n{sub}", use_container_width=True, key=f"tile_{i}"):
+                    st.session_state["card_selected_label"] = lbl
+                    selected_label = lbl
                 st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        with c_view:
+            card = options[selected_label]
+
+            st.markdown("#### 📝 Question")
+            st.markdown(card["question"])
+
+            st.markdown("#### 💡 Explanation")
+            st.markdown(card["answer"])
+
+            img_path = card.get("image") or ""
+            if img_path and Path(img_path).exists():
+                st.markdown("#### 📷 Figure")
+                st.image(str(img_path), use_container_width=True)  # <-- use_container_width
+            else:
+                st.caption(
+                    "No figure file found for this card. "
+                    "Check the `image` path in `precomputed_cards.json`."
+                )
 
         st.markdown(
             """
             <div style="margin-top:0.8rem;font-size:0.78rem;color:#9ca3af;">
-            These views are generated offline from the sample dataset and RAG corpus.
+            These views are generated offline from sample dataset and RAG corpus.
             </div>
             """,
             unsafe_allow_html=True,
@@ -921,13 +709,6 @@ with tab_cards:
 # ========== Tab 2: Chat ==========
 
 with tab_chat:
-    backend = st.session_state.get("llm_backend")
-    debug = st.session_state.get("llm_debug")
-    if backend:
-        st.caption(f"LLM backend: {backend}")
-    if debug:
-        st.info(debug)
-
     for m in st.session_state["messages"]:
         with st.chat_message(m["role"]):
             st.markdown(m["content"])
@@ -955,10 +736,7 @@ with tab_chat:
                 st.session_state.get("patient_summary", "(no patient uploaded)"),
                 hits,
             )
-            ans = (
-                ollama_generate(ollama_model, prompt, base_url=ollama_base_url)
-                or "LLM unavailable. Check Ollama URL/model, or set HF_TOKEN + HF_MODEL for Hugging Face."
-            )
+            ans = hf_generate(prompt) or "LLM unavailable. Please check HF_TOKEN / HF_MODEL / HF_PROVIDER."
 
         st.session_state["messages"].append({"role": "assistant", "content": ans})
         with st.chat_message("assistant"):
@@ -982,4 +760,6 @@ with tab_chat:
         if cols[i % 3].button(q, use_container_width=True, key=f"ex_{i}"):
             st.session_state["pending_query"] = q
             st.rerun()   # <-- updated from experimental_rerun
+
+
 
