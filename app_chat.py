@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 import os, json, requests, pickle
+import traceback
 import joblib
 from pathlib import Path
 from typing import List, Dict, Any, Optional
@@ -68,6 +69,58 @@ try:
     _HAS_ST = True
 except Exception:
     _HAS_ST = False
+
+
+def _get_secret(name: str, default: str = "") -> str:
+    try:
+        v = st.secrets.get(name, default)
+        return str(v) if v is not None else default
+    except Exception:
+        return os.getenv(name, default)
+
+
+def _hf_chat_generate(prompt: str, *, model: str, token: str, provider: str = "auto", timeout: int = 120) -> str:
+    from huggingface_hub import InferenceClient
+
+    messages = [
+        {"role": "system", "content": "You are a careful clinical assistant. Answer clearly and concisely."},
+        {"role": "user", "content": prompt},
+    ]
+
+    client = InferenceClient(
+        provider=provider,
+        api_key=token,
+        timeout=timeout,
+    )
+
+    try:
+        out = client.chat_completion(
+            model=model,
+            messages=messages,
+            max_tokens=512,
+            temperature=0.4,
+            top_p=0.9,
+        )
+        content = out.choices[0].message.content
+        if isinstance(content, str):
+            return content.strip()
+        if isinstance(content, list):
+            parts = []
+            for item in content:
+                if isinstance(item, dict) and item.get("type") == "text":
+                    parts.append(item.get("text", ""))
+            return "".join(parts).strip()
+        return str(content).strip()
+    except Exception:
+        out = client.text_generation(
+            prompt=prompt,
+            model=model,
+            max_new_tokens=512,
+            temperature=0.4,
+            top_p=0.9,
+            repetition_penalty=1.05,
+        )
+        return (out or "").strip()
 
 
 class RagStore:
@@ -151,38 +204,53 @@ class RagStore:
         return rows
 
 
-# ====================== LLM via Ollama ======================
+# ====================== LLM via Ollama / Hugging Face ======================
 def ollama_generate(model: str, prompt: str, base_url: str, timeout: int = 120) -> Optional[str]:
+    debug_msgs = []
+
+    # 1) Try local Ollama first
     url = f"{base_url.rstrip('/')}/api/generate"
     try:
-        resp = requests.post(url, json={"model": model, "prompt": prompt, "stream": False}, timeout=timeout)
+        resp = requests.post(
+            url,
+            json={"model": model, "prompt": prompt, "stream": False},
+            timeout=timeout,
+        )
         if resp.status_code == 200:
-            return resp.json().get("response", "").strip()
-    except Exception:
-        pass
+            text = resp.json().get("response", "").strip()
+            if text:
+                st.session_state["llm_backend"] = f"Ollama: {model}"
+                return text
+        else:
+            debug_msgs.append(f"Ollama HTTP {resp.status_code}: {resp.text[:200]}")
+    except Exception as e:
+        debug_msgs.append(f"Ollama error: {e}")
 
-    try:
-        hf_token = os.getenv("HUGGINGFACEHUB_API_TOKEN", "")
-        hf_model = os.getenv("HF_MODEL", "Qwen/Qwen2.5-1.5B-Instruct")
-        if hf_token:
-            from huggingface_hub import InferenceClient
-            client = InferenceClient(hf_model, token=hf_token)
-            out = client.text_generation(
+    # 2) Try Hugging Face Inference Providers
+    hf_token = _get_secret("HF_TOKEN") or _get_secret("HUGGINGFACEHUB_API_TOKEN")
+    hf_model = _get_secret("HF_MODEL", "meta-llama/Llama-3.1-8B-Instruct")
+    hf_provider = _get_secret("HF_PROVIDER", "auto")
+
+    if hf_token:
+        try:
+            text = _hf_chat_generate(
                 prompt,
-                max_new_tokens=256,
-                temperature=0.4,
-                top_p=0.9,
-                repetition_penalty=1.05,
+                model=hf_model,
+                token=hf_token,
+                provider=hf_provider,
+                timeout=timeout,
             )
-            return (out or "").strip()
-    except Exception:
-        pass
+            if text:
+                st.session_state["llm_backend"] = f"Hugging Face: {hf_model} ({hf_provider})"
+                return text
+        except Exception as e:
+            debug_msgs.append(f"HF error: {e}")
+            debug_msgs.append(traceback.format_exc(limit=1))
+    else:
+        debug_msgs.append("HF token missing. Set HF_TOKEN or HUGGINGFACEHUB_API_TOKEN.")
 
-    try:
-        return "LLM offline. Based on patient summary and internal evidence, here are key points:\n- Ensure adequate oxygenation and blood pressure.\n- Consider checking recent lab trends.\n- If risk trajectory is rising, shorten monitoring interval and prepare escalation."
-    except Exception:
-        return None
-
+    st.session_state["llm_debug"] = " | ".join(debug_msgs[-4:])
+    return None
 
 # ====================== Risk, Alarms, Forecast core ======================
 def _sig(z: np.ndarray) -> np.ndarray:
@@ -573,6 +641,15 @@ with c_gear:
         st.caption("Generation")
         ollama_base_url = st.text_input("Ollama base URL", value=ollama_base_url)
         ollama_model = st.text_input("Ollama model", value=ollama_model)
+        st.text_input("HF model", value=_get_secret("HF_MODEL", "meta-llama/Llama-3.1-8B-Instruct"), key="hf_model_ui")
+        st.text_input("HF provider", value=_get_secret("HF_PROVIDER", "auto"), key="hf_provider_ui")
+        st.text_input("HF token", value="", type="password", key="hf_token_ui", help="Optional for local testing. Prefer Streamlit secrets or environment variables in deployment.")
+        if st.session_state.get("hf_model_ui"):
+            os.environ["HF_MODEL"] = st.session_state["hf_model_ui"]
+        if st.session_state.get("hf_provider_ui"):
+            os.environ["HF_PROVIDER"] = st.session_state["hf_provider_ui"]
+        if st.session_state.get("hf_token_ui"):
+            os.environ["HF_TOKEN"] = st.session_state["hf_token_ui"]
         topk = st.slider("Internal top-k chunks", 3, 12, topk)
 
         st.markdown("---")
@@ -844,6 +921,13 @@ with tab_cards:
 # ========== Tab 2: Chat ==========
 
 with tab_chat:
+    backend = st.session_state.get("llm_backend")
+    debug = st.session_state.get("llm_debug")
+    if backend:
+        st.caption(f"LLM backend: {backend}")
+    if debug:
+        st.info(debug)
+
     for m in st.session_state["messages"]:
         with st.chat_message(m["role"]):
             st.markdown(m["content"])
@@ -873,7 +957,7 @@ with tab_chat:
             )
             ans = (
                 ollama_generate(ollama_model, prompt, base_url=ollama_base_url)
-                or "LLM unavailable. Please confirm the Ollama server."
+                or "LLM unavailable. Check Ollama URL/model, or set HF_TOKEN + HF_MODEL for Hugging Face."
             )
 
         st.session_state["messages"].append({"role": "assistant", "content": ans})
