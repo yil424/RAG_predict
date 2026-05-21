@@ -36,7 +36,7 @@ REFRACTORY_MIN = float(os.getenv("REFRACTORY_MIN", "10.0"))
 
 DEFAULT_HF_MODEL = os.getenv("HF_MODEL", "Qwen/Qwen2.5-1.5B-Instruct")
 DEFAULT_HF_PROVIDER = os.getenv("HF_PROVIDER", "auto")
-USE_OLLAMA = os.getenv("USE_OLLAMA", "1") == "1"
+USE_OLLAMA = os.getenv("USE_OLLAMA", "0") == "1"
 OLLAMA_BASE_URL = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
 
@@ -299,105 +299,131 @@ def call_ollama(prompt: str, timeout: int = 90) -> Optional[str]:
     return None
 
 
-def call_huggingface(prompt: str, timeout: int = 120) -> str:
-    """Call Hugging Face Inference Providers with a chat/conversational route.
+def _extract_section(text: str, start_label: str, end_labels: List[str]) -> str:
+    """Small helper for the offline fallback answer."""
+    if start_label not in text:
+        return ""
+    part = text.split(start_label, 1)[1]
+    for lab in end_labels:
+        if lab in part:
+            part = part.split(lab, 1)[0]
+    return part.strip()
 
-    This version avoids `text_generation()` because some hosted providers
-    expose Qwen/Qwen2.5-1.5B-Instruct as a conversational/chat model only.
-    Required Streamlit secrets:
-      HF_TOKEN = "hf_xxx"
-    Optional:
-      HF_MODEL = "Qwen/Qwen2.5-1.5B-Instruct"
-      HF_PROVIDER = "auto"
+
+def offline_summary_answer(prompt: str) -> str:
+    """User-facing fallback when hosted/local LLM is unavailable.
+
+    This intentionally hides low-level Hugging Face/provider errors from demo users
+    and still gives a useful, cautious summary using the prompt content that has
+    already been assembled from patient data and retrieved RAG snippets.
     """
+    user_q = _extract_section(
+        prompt,
+        "User question:",
+        ["Patient summary:", "Retrieved ECMO evidence snippets:", "Please answer"],
+    )
+    patient = _extract_section(
+        prompt,
+        "Patient summary:",
+        ["Retrieved ECMO evidence snippets:", "Please answer"],
+    )
+    evidence = _extract_section(
+        prompt,
+        "Retrieved ECMO evidence snippets:",
+        ["Please answer"],
+    )
+
+    patient_short = patient if patient else "No patient summary is currently available. Please upload or load a CSV and run analysis first."
+    evidence_short = evidence if evidence and "No RAG evidence retrieved" not in evidence else "No guideline snippets were retrieved for this query."
+    if len(patient_short) > 1200:
+        patient_short = patient_short[:1200].rstrip() + "..."
+    if len(evidence_short) > 900:
+        evidence_short = evidence_short[:900].rstrip() + "..."
+
+    return (
+        "LLM offline. Based on the available patient summary and local evidence, here is a template-based summary.\n\n"
+        f"**Question:** {user_q or 'General ECMO risk question'}\n\n"
+        "**Patient summary**\n"
+        f"{patient_short}\n\n"
+        "**Evidence context**\n"
+        f"{evidence_short}\n\n"
+        "**Suggested monitoring focus**\n"
+        "- Review oxygenation signals such as O2 saturation, PaO2, and NIRS for sustained decline rather than isolated noise.\n"
+        "- Check hemodynamic stability, especially systolic/diastolic blood pressure and heart-rate trends.\n"
+        "- Pay attention to metabolic stress markers such as lactate, pH, and base excess when available.\n"
+        "- If the risk trajectory is rising or multiple red flags appear together, increase bedside review frequency and prepare escalation discussion.\n"
+        "- This is a demo-oriented summary and should not be used as validated clinical advice."
+    )
+
+
+def call_huggingface(prompt: str, timeout: int = 120) -> str:
     token = get_secret("HF_TOKEN") or get_secret("HUGGINGFACEHUB_API_TOKEN")
     model = get_secret("HF_MODEL", DEFAULT_HF_MODEL)
-    provider = get_secret("HF_PROVIDER", DEFAULT_HF_PROVIDER) or "auto"
+    provider = get_secret("HF_PROVIDER", DEFAULT_HF_PROVIDER)
 
+    # Do not expose configuration/provider errors to end users in the public demo.
     if not token:
-        return (
-            "LLM is not configured online. Please add `HF_TOKEN` in Streamlit secrets "
-            "or set the `HF_TOKEN` environment variable."
-        )
+        return offline_summary_answer(prompt)
 
     try:
         from huggingface_hub import InferenceClient
-    except Exception as e:
-        return (
-            "Hugging Face client is not installed. Please add `huggingface_hub` "
-            f"to requirements.txt. Error: {e}"
-        )
+    except Exception:
+        return offline_summary_answer(prompt)
 
-    messages = [
-        {
-            "role": "system",
-            "content": (
-                "You are a careful clinical decision-support demo assistant. "
-                "Use the patient summary and retrieved ECMO evidence. "
-                "Do not diagnose. Give concise monitoring-oriented suggestions. "
-                "Always mention this is a demo workflow, not validated clinical advice."
-            ),
-        },
-        {"role": "user", "content": prompt},
-    ]
-
-    errors: List[str] = []
-
-    # Route 1: current OpenAI-compatible HF chat API.
-    # This is the preferred route for models/providers that report task='conversational'.
     try:
-        try:
+        # Prefer OpenAI-compatible chat-completion style. This avoids calling
+        # text_generation on conversational-only hosted models.
+        if provider and provider.lower() != "auto":
             client = InferenceClient(provider=provider, api_key=token, timeout=timeout)
-        except TypeError:
-            # Older huggingface_hub versions may not accept api_key/provider.
-            client = InferenceClient(model=model, token=token, timeout=timeout)
+        else:
+            client = InferenceClient(api_key=token, timeout=timeout)
 
-        resp = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            max_tokens=550,
-            temperature=0.25,
-            top_p=0.9,
-        )
-        content = resp.choices[0].message.content
-        if content:
-            return str(content).strip()
-    except Exception as e:
-        errors.append(f"chat.completions.create failed: {e}")
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are a careful clinical decision-support demo assistant. "
+                    "Use the patient summary and retrieved ECMO evidence. "
+                    "Do not diagnose. Give concise monitoring-oriented suggestions."
+                ),
+            },
+            {"role": "user", "content": prompt},
+        ]
 
-    # Route 2: older huggingface_hub chat_completion() API.
-    # Kept as a compatibility fallback, still using chat/conversational mode.
-    try:
+        # Newer huggingface_hub API.
         try:
-            client = InferenceClient(provider=provider, api_key=token, timeout=timeout)
-            out = client.chat_completion(
+            out = client.chat.completions.create(
                 model=model,
                 messages=messages,
                 max_tokens=550,
                 temperature=0.25,
-                top_p=0.9,
             )
-        except TypeError:
-            client = InferenceClient(model=model, token=token, timeout=timeout)
-            out = client.chat_completion(
+            content = out.choices[0].message.content
+            if content:
+                return str(content).strip()
+        except Exception:
+            pass
+
+        # Older huggingface_hub API.
+        try:
+            old_client = InferenceClient(model=model, token=token, timeout=timeout)
+            out_old = old_client.chat_completion(
                 messages=messages,
                 max_tokens=550,
                 temperature=0.25,
                 top_p=0.9,
             )
+            content_old = out_old.choices[0].message.content
+            if content_old:
+                return str(content_old).strip()
+        except Exception:
+            pass
 
-        content = out.choices[0].message.content
-        if content:
-            return str(content).strip()
-    except Exception as e:
-        errors.append(f"chat_completion failed: {e}")
+    except Exception:
+        pass
 
-    return (
-        "Online LLM call failed. Please verify that your Hugging Face token is valid, "
-        "HF_MODEL supports hosted chat/conversational inference, and Streamlit secrets "
-        "have been deployed. "
-        f"Details: {' | '.join(errors)}"
-    )
+    return offline_summary_answer(prompt)
+
 
 def generate_answer(prompt: str) -> str:
     local = call_ollama(prompt)
