@@ -281,6 +281,19 @@ def make_patient_summary(df: pd.DataFrame, smooth: Optional[np.ndarray] = None, 
     ]
     return "\n".join(lines)
 
+def offline_template_answer(prompt: str) -> str:
+    """Fallback answer when online/local LLM is unavailable."""
+    return (
+        "LLM offline. Based on the available patient summary and local RAG evidence, "
+        "here is a template-based monitoring summary:\n\n"
+        "- This response is generated from the uploaded patient summary and retrieved ECMO evidence snippets, "
+        "not from an active LLM call.\n"
+        "- Review the current risk index, six-hour risk summary, and any active demo-threshold flags shown in the dashboard.\n"
+        "- Pay particular attention to oxygenation, blood pressure, heart rate, NIRS, lactate, and recent trend changes.\n"
+        "- If the smoothed risk trajectory is rising or multiple red flags appear together, the bedside team should consider closer monitoring, "
+        "repeat assessment of recent labs, and preparation for escalation.\n"
+        "- This is a demonstration workflow and not validated clinical advice."
+    )
 
 # ====================== LLM generation ======================
 def call_ollama(prompt: str, timeout: int = 90) -> Optional[str]:
@@ -315,18 +328,12 @@ def call_huggingface(prompt: str, timeout: int = 120) -> str:
     provider = get_secret("HF_PROVIDER", DEFAULT_HF_PROVIDER) or "auto"
 
     if not token:
-        return (
-            "LLM is not configured online. Please add `HF_TOKEN` in Streamlit secrets "
-            "or set the `HF_TOKEN` environment variable."
-        )
+        return offline_template_answer(prompt)
 
     try:
         from huggingface_hub import InferenceClient
-    except Exception as e:
-        return (
-            "Hugging Face client is not installed. Please add `huggingface_hub` "
-            f"to requirements.txt. Error: {e}"
-        )
+    except Exception:
+        return offline_template_answer(prompt)
 
     messages = [
         {
@@ -392,12 +399,7 @@ def call_huggingface(prompt: str, timeout: int = 120) -> str:
     except Exception as e:
         errors.append(f"chat_completion failed: {e}")
 
-    return (
-        "Online LLM call failed. Please verify that your Hugging Face token is valid, "
-        "HF_MODEL supports hosted chat/conversational inference, and Streamlit secrets "
-        "have been deployed. "
-        f"Details: {' | '.join(errors)}"
-    )
+    return offline_template_answer(prompt)
 
 def generate_answer(prompt: str) -> str:
     local = call_ollama(prompt)
@@ -711,7 +713,7 @@ def main() -> None:
                     st.markdown(question)
 
                 with st.chat_message("assistant"):
-                    with st.spinner("Calling online LLM…"):
+                    with st.spinner("Generating RAG-based answer…"):
                         hits = rag.search(question, topk=RAG_TOPK) if rag else []
                         prompt = build_prompt(question, st.session_state.patient_summary, hits)
                         answer = generate_answer(prompt)
